@@ -516,7 +516,7 @@
 
             fileInput.click();
 
-            fileInput.onchange = async function(e) {
+            fileInput.onchange = async (e) => {
                 const file = e.target.files[0];
                 if (!file) {
                     showToast(config.messages.noFileSelected);
@@ -541,7 +541,7 @@
                 addUserMessage(`הקובץ הועלה: ${file.name}`);
                 showToast(config.messages.uploadSuccess);
 
-                const loadingMessage = addBotMessage("", null, false, true);
+                const loadingMessage = addBotMessage(config.messages.analyzingSyllabus, null, false, true);
 
                 try {
                     const fileContent = await readFileContent(file);
@@ -569,8 +569,18 @@
                         })
                     });
 
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
                     const data = await response.json();
-                    const clusters = JSON.parse(data.choices[0].message.content);
+                    let clusters;
+                    try {
+                        clusters = JSON.parse(data.choices[0].message.content);
+                    } catch (parseError) {
+                        console.error('Error parsing OpenAI response:', parseError);
+                        clusters = data.choices[0].message.content.split('\n').filter(line => line.trim());
+                    }
                     
                     // הצגת האשכולות שהתקבלו מ-OpenAI
                     updateLoadingMessage(loadingMessage, "על סמך ניתוח הסילבוס שהעלית, זיהיתי מספר אשכולות מיומנויות רלוונטיים. עם איזה מהם תרצה להמשיך?",
@@ -581,9 +591,9 @@
                     console.error('Error:', error);
                     showToast(config.messages.processingError);
                     updateLoadingMessage(loadingMessage, config.messages.processingError);
+                } finally {
+                    document.body.removeChild(fileInput);
                 }
-
-                document.body.removeChild(fileInput);
             };
         }
 
