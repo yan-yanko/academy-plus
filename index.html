@@ -12,12 +12,16 @@
     <script>
         // טעינת משתנה הסביבה מ-Netlify
         window.initializeApp = async function() {
+            console.log('Starting initializeApp...');
             try {
+                console.log('Fetching API key from Netlify...');
                 const response = await fetch('/.netlify/functions/get-api-key');
+                console.log('Response status:', response.status);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
+                console.log('Data received:', { hasApiKey: !!data.apiKey });
                 window.OPENAI_API_KEY = data.apiKey;
                 console.log('API key loaded successfully');
                 startChat();
