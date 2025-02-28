@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>אקדמיה פלוס</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
     <style>
         * {
             margin: 0;
@@ -889,39 +893,115 @@
         
         // Simulate file upload
         function simulateFileUpload() {
-            // Show toast notification
-            showToast("מעלה קובץ...");
-            
-            // After 1.5 seconds, show success
-            setTimeout(() => {
-                addUserMessage("הקובץ הועלה: סילבוס_קורס_תקשורת_דיגיטלית.pdf");
-                
-                // Show toast notification
-                showToast("הקובץ הועלה בהצלחה");
-                
-                // Add loading indicator for bot response
+            // יצירת אלמנט input מסוג file
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.pdf,.txt,.doc,.docx';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+
+            // הפעלת חלון בחירת הקובץ
+            fileInput.click();
+
+            // טיפול בבחירת קובץ
+            fileInput.onchange = async function(e) {
+                const file = e.target.files[0];
+                if (!file) {
+                    showToast(config.messages.noFileSelected);
+                    return;
+                }
+
+                // בדיקת סוג הקובץ
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+                if (!config.system.allowedFileTypes.includes(fileExtension)) {
+                    showToast(config.messages.invalidFileType);
+                    return;
+                }
+
+                // בדיקת גודל הקובץ
+                if (file.size > config.system.maxFileSize) {
+                    showToast(config.messages.fileTooLarge);
+                    return;
+                }
+
+                addUserMessage(`הקובץ הועלה: ${file.name}`);
+                showToast(config.messages.uploadSuccess);
+
+                // הוספת אינדיקטור טעינה
                 const loadingMessage = addBotMessage("", null, false, true);
-                
-                setTimeout(() => {
-                    updateLoadingMessage(loadingMessage, "תודה על העלאת הסילבוס. הקובץ לא נשמר במערכת והוא משמש אך ורק לצורך הניתוח וההמלצות שאציע לך.");
+
+                try {
+                    // קריאת הקובץ
+                    const fileContent = await readFileContent(file);
                     
+                    // עדכון ההודעה עם תוצאות הניתוח
                     setTimeout(() => {
-                        // Skip additional questions and go straight to cluster recommendations
-                        const loadingAnalysis = addBotMessage("מנתח את הסילבוס...", null, false, true);
-                        
-                        setTimeout(() => {
-                            updateLoadingMessage(loadingAnalysis, "על סמך ניתוח הסילבוס שהעלית, זיהיתי מספר אשכולות מיומנויות רלוונטיים. עם איזה מהם תרצה להמשיך?", [
-                                { text: "מחקר ואקדמיה", action: "selectCluster" },
-                                { text: "טכנולוגיה וחדשנות", action: "selectCluster" },
-                                { text: "פיתוח כישורים והדרכה", action: "selectCluster" },
-                                { text: "דיגיטל ורשתות חברתיות", action: "selectCluster" },
-                                { text: "ייעוץ וניהול", action: "selectCluster" }
-                            ]);
-                            currentState = "selectingCluster";
-                        }, 2000);
-                    }, 1000);
-                }, 1500);
-            }, 1500);
+                        updateLoadingMessage(loadingMessage, "על סמך ניתוח הסילבוס שהעלית, זיהיתי מספר אשכולות מיומנויות רלוונטיים. עם איזה מהם תרצה להמשיך?", [
+                            { text: "מחקר ואקדמיה", action: "selectCluster" },
+                            { text: "טכנולוגיה וחדשנות", action: "selectCluster" },
+                            { text: "פיתוח כישורים והדרכה", action: "selectCluster" },
+                            { text: "דיגיטל ורשתות חברתיות", action: "selectCluster" },
+                            { text: "ייעוץ וניהול", action: "selectCluster" }
+                        ]);
+                        currentState = "selectingCluster";
+                    }, 2000);
+                } catch (error) {
+                    showToast(config.messages.processingError);
+                    updateLoadingMessage(loadingMessage, config.messages.processingError);
+                }
+
+                // הסרת אלמנט ה-input
+                document.body.removeChild(fileInput);
+            };
+        }
+
+        // פונקציה לקריאת תוכן הקובץ
+        async function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = async (e) => {
+                    try {
+                        if (file.name.toLowerCase().endsWith('.pdf')) {
+                            // טיפול בקובץ PDF
+                            const pdfData = new Uint8Array(e.target.result);
+                            const text = await extractTextFromPDF(pdfData);
+                            resolve(text);
+                        } else {
+                            // טיפול בקבצי טקסט
+                            resolve(e.target.result);
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = () => reject(new Error('Error reading file'));
+                
+                if (file.name.toLowerCase().endsWith('.pdf')) {
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    reader.readAsText(file);
+                }
+            });
+        }
+
+        // פונקציה לחילוץ טקסט מ-PDF
+        async function extractTextFromPDF(pdfData) {
+            try {
+                const pdf = await window.pdfjsLib.getDocument({data: pdfData}).promise;
+                let text = '';
+                
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    text += content.items.map(item => item.str).join(' ') + '\n';
+                }
+                
+                return text;
+            } catch (error) {
+                throw new Error('Error extracting text from PDF');
+            }
         }
         
         // Show toast notification
