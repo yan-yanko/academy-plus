@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>אקדמיה פלוס</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            padding: 16px;
+            background: linear-gradient(90deg, #3a7bd5, #1c4f9c);
+            color: white;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .message {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        .bot-message {
+            justify-content: flex-start;
+        }
+        
+        .user-message {
+            justify-content: flex-end;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-left: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .bot-avatar {
+            background-color: #1c4f9c;
+        }
+
+        .user-avatar {
+            background-color: #666;
+        }
+        
+        .message-content {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 15px;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+        
+        .bot-message .message-content {
+            background-color: #f0f2f5;
+            color: #333;
+            border-top-right-radius: 15px;
+            border-bottom-right-radius: 15px;
+            border-top-left-radius: 4px;
+            border-bottom-left-radius: 15px;
+        }
+        
+        .user-message .message-content {
+            background-color: #0084ff;
+            color: white;
+            border-top-left-radius: 15px;
+            border-bottom-left-radius: 15px;
+            border-top-right-radius: 4px;
+            border-bottom-right-radius: 15px;
+        }
+        
+        .options-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .option-button {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 18px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .option-button:hover {
+            background-color: #f0f2f5;
+            border-color: #bbb;
+        }
+        
+        .file-upload {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .file-upload:hover {
+            border-color: #0084ff;
+            background-color: #f0f7ff;
+        }
+        
+        .file-upload p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .input-container {
+            display: flex;
+            padding: 16px;
+            border-top: 1px solid #ddd;
+            background-color: white;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 15px;
+            resize: none;
+            outline: none;
+        }
+        
+        .send-button {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+            background-color: #0084ff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .send-button:hover {
+            background-color: #0073e6;
+        }
+        
+        .copyright-notice {
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
+        
+        /* Loading indicator styles */
+        .loading-indicator {
+            display: inline-block;
+            margin-left: 5px;
+        }
+        
+        .loading-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #666;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        
+        .loading-indicator span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        
+        .loading-indicator span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container" id="app">
+        <!-- Chat Screen -->
+        <div id="chat-screen">
+            <div class="header">
+                <h1>אקדמיה פלוס</h1>
+                <p>זיהוי והטמעת מיומנויות תעסוקתיות בתכני הקורס שלך</p>
+            </div>
+            
+            <div class="content">
+                <div class="chat-container" id="chat-container">
+                    <!-- Messages will be added here dynamically -->
+                </div>
+                
+                <div class="input-container">
+                    <textarea class="message-input" id="message-input" placeholder="כתוב הודעה..."></textarea>
+                    <button class="send-button" onclick="sendMessage()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // User data
+        let userData = {
+            firstName: "משתמש", // Default name
+            lastName: "",
+            email: ""
+        };
+        
+        // Chat flow logic
+        let currentState = "initial";
+        let selectedCluster = "";
+        let selectedOccupation = "";
+        let selectedSkill = "";
+        
+        // Initialize the chat when page loads
+        window.onload = function() {
+            initializeChat();
+            
+            // Allow sending message with Enter key
+            document.getElementById('message-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        };
+        
+        // Initialize the chat with the welcome message
+        function initializeChat() {
+            addBotMessage(`שלום ${userData.firstName}, נעים להכיר. אני עוזר הוראה מבוסס בינה מלאכותית המתמחה בזיהוי והטמעת מיומנויות תעסוקתיות בקורסים אקדמיים. אנתח את תוכן הקורס שלך, אזהה מיומנויות רלוונטיות לשוק העבודה, ואציע דרכים מעשיות לשילובן בהוראה שלך.`);
+            
+            setTimeout(() => {
+                addBotMessage(`בוא נתחיל מהעלאת הסילבוס שאתה מתכוון ללמד.`, [
+                    { text: "העלאת סילבוס", action: "uploadSyllabus" }
+                ]);
+            }, 1000);
+        }
+        
+        // Add a bot message to the chat
+        function addBotMessage(text, options = null, fileUpload = false, isLoading = false) {
+            const chatContainer = document.getElementById('chat-container');
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot-message';
+            
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'avatar bot-avatar';
+            avatarDiv.innerText = 'AI';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            if (isLoading) {
+                contentDiv.innerHTML = '<div class="loading-indicator"><span></span><span></span><span></span></div>';
+            } else {
+                contentDiv.innerText = text;
+            }
+            
+            messageDiv.appendChild(avatarDiv);
+            messageDiv.appendChild(contentDiv);
+            
+            // If options are provided, add option buttons
+            if (options && !isLoading) {
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'options-container';
+                
+                options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.className = 'option-button';
+                    button.innerText = option.text;
+                    button.onclick = () => handleOptionClick(option.action, option.text);
+                    optionsContainer.appendChild(button);
+                });
+                
+                contentDiv.appendChild(optionsContainer);
+            }
+            
+            // If file upload is needed
+            if (fileUpload && !isLoading) {
+                const fileUploadDiv = document.createElement('div');
+                fileUploadDiv.className = 'file-upload';
+                fileUploadDiv.innerHTML = '<p>לחץ כאן להעלאת קובץ הסילבוס שלך<br>(תומך ב-PPT, PDF, Word)</p>';
+                fileUploadDiv.onclick = () => simulateFileUpload();
+                
+                contentDiv.appendChild(fileUploadDiv);
+            }
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            return messageDiv; // Return the message element for potential updates
+        }
+        
+        // Update a loading message with actual content
+        function updateLoadingMessage(loadingElement, text, options = null, fileUpload = false) {
+            const contentDiv = loadingElement.querySelector('.message-content');
+            contentDiv.innerText = text;
+            
+            // If options are provided, add option buttons
+            if (options) {
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'options-container';
+                
+                options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.className = 'option-button';
+                    button.innerText = option.text;
+                    button.onclick = () => handleOptionClick(option.action, option.text);
+                    optionsContainer.appendChild(button);
+                });
+                
+                contentDiv.appendChild(optionsContainer);
+            }
+            
+            // If file upload is needed
+            if (fileUpload) {
+                const fileUploadDiv = document.createElement('div');
+                fileUploadDiv.className = 'file-upload';
+                fileUploadDiv.innerHTML = '<p>לחץ כאן להעלאת קובץ הסילבוס שלך<br>(תומך ב-PPT, PDF, Word)</p>';
+                fileUploadDiv.onclick = () => simulateFileUpload();
+                
+                contentDiv.appendChild(fileUploadDiv);
+            }
+            
+            const chatContainer = document.getElementById('chat-container');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Add a user message to the chat
+        function addUserMessage(text) {
+            const chatContainer = document.getElementById('chat-container');
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user-message';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerText = text;
+            
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'avatar user-avatar';
+            avatarDiv.innerText = userData.firstName.charAt(0);
+            
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(avatarDiv);
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Handle user sending a message
+        function sendMessage() {
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value.trim();
+            
+            if (message) {
+                addUserMessage(message);
+                messageInput.value = '';
+                
+                // Process the message based on current state
+                processUserInput(message);
+            }
+        }
+        
+        // Handle user input based on current state
+        function processUserInput(message) {
+            // Add loading indicator
+            const loadingMessage = addBotMessage("", null, false, true);
+            
+            if (currentState === "askingCourseName") {
+                // User provided course name
+                setTimeout(() => {
+                    updateLoadingMessage(loadingMessage, "תודה. באיזו פקולטה הלימודים?");
+                    currentState = "askingFaculty";
+                }, 1000);
+            }
+            else if (currentState === "askingFaculty") {
+                // User provided faculty
+                setTimeout(() => {
+                    updateLoadingMessage(loadingMessage, "יש משהו נוסף שכדאי שאדע?");
+                    currentState = "askingAdditionalInfo";
+                }, 1000);
+            }
+            else if (currentState === "askingAdditionalInfo") {
+                // User provided additional info
+                setTimeout(() => {
+                    updateLoadingMessage(loadingMessage, "מעולה, אנחנו מוכנים להתחיל.");
+                    
+                    setTimeout(() => {
+                        addBotMessage("על סמך המידע שקיבלתי, להלן האשכולות הרלוונטיים. עם איזה מהם תרצו שאמשיך?", [
+                            { text: "מדיה ועיתונות", action: "selectCluster" },
+                            { text: "פרסום ושיווק", action: "selectCluster" },
+                            { text: "יח\"צ ותקשורת תאגידית", action: "selectCluster" },
+                            { text: "הפקה ויצירת תוכן", action: "selectCluster" },
+                            { text: "דיגיטל ורשתות חברתיות", action: "selectCluster" },
+                            { text: "מחקר ואקדמיה", action: "selectCluster" },
+                            { text: "טכנולוגיה וחדשנות", action: "selectCluster" }
+                        ]);
+                        currentState = "selectingCluster";
+                    }, 1000);
+                }, 1000);
+            }
+            else {
+                // Default response
+                setTimeout(() => {
+                    updateLoadingMessage(loadingMessage, "תודה על המידע. האם תוכל להעלות את הסילבוס כדי שנוכל להמשיך?", [
+                        { text: "העלאת סילבוס", action: "uploadSyllabus" }
+                    ]);
+                }, 1000);
+            }
+        }
+        
+        // Handle option button clicks
+        function handleOptionClick(action, text) {
+            switch(action) {
+                case "uploadSyllabus":
+                    addUserMessage("העלאת סילבוס");
+                    simulateFileUpload();
+                    break;
+                    
+                case "selectCluster":
+                    addUserMessage(text);
+                    selectedCluster = text;
+                    
+                    // Add loading indicator
+                    const loadingMessage = addBotMessage("", null, false, true);
+                    
+                    // Get occupations based on selected cluster
+                    let occupations = [];
+                    
+                    if (text === "מחקר ואקדמיה") {
+                        occupations = [
+                            { text: "חוקר/ת חינוך", action: "selectOccupation" },
+                            { text: "מרצה אקדמי/ת", action: "selectOccupation" },
+                            { text: "מפתח/ת תכניות לימודים", action: "selectOccupation" },
+                            { text: "יועץ/ת פדגוגי/ת", action: "selectOccupation" },
+                            { text: "מומחה/ית הערכה אקדמית", action: "selectOccupation" },
+                            { text: "מנהל/ת מחקר חינוכי", action: "selectOccupation" }
+                        ];
+                    } else if (text === "טכנולוגיה וחדשנות") {
+                        occupations = [
+                            { text: "מפתח/ת פתרונות בינה מלאכותית", action: "selectOccupation" },
+                            { text: "מנהל/ת פרויקטים טכנולוגיים", action: "selectOccupation" },
+                            { text: "מומחה/ית UX/UI", action: "selectOccupation" },
+                            { text: "אנליסט/ית מידע", action: "selectOccupation" },
+                            { text: "מנהל/ת מוצר דיגיטלי", action: "selectOccupation" },
+                            { text: "מומחה/ית חדשנות חינוכית", action: "selectOccupation" }
+                        ];
+                    } else if (text === "פיתוח כישורים והדרכה") {
+                        occupations = [
+                            { text: "מפתח/ת הדרכה", action: "selectOccupation" },
+                            { text: "מנחה סדנאות כישורים", action: "selectOccupation" },
+                            { text: "יועץ/ת פיתוח מקצועי", action: "selectOccupation" },
+                            { text: "מאמן/ת כישורים תעסוקתיים", action: "selectOccupation" },
+                            { text: "מומחה/ית למידה ארגונית", action: "selectOccupation" },
+                            { text: "מנהל/ת מערך הדרכה", action: "selectOccupation" }
+                        ];
+                    } else if (text === "דיגיטל ורשתות חברתיות") {
+                        occupations = [
+                            { text: "מנהל/ת קהילות דיגיטליות", action: "selectOccupation" },
+                            { text: "מומחה/ית תוכן דיגיטלי", action: "selectOccupation" },
+                            { text: "מנהל/ת מדיה חברתית", action: "selectOccupation" },
+                            { text: "יוצר/ת תוכן חינוכי מקוון", action: "selectOccupation" },
+                            { text: "מומחה/ית שיווק דיגיטלי", action: "selectOccupation" },
+                            { text: "מפתח/ת קורסים מקוונים", action: "selectOccupation" }
+                        ];
+                    } else if (text === "ייעוץ וניהול") {
+                        occupations = [
+                            { text: "יועץ/ת קריירה", action: "selectOccupation" },
+                            { text: "מנהל/ת פיתוח ארגוני", action: "selectOccupation" },
+                            { text: "יועץ/ת השמה", action: "selectOccupation" },
+                            { text: "מומחה/ית ניהול שינויים", action: "selectOccupation" },
+                            { text: "יועץ/ת אסטרטגי/ת", action: "selectOccupation" },
+                            { text: "מנהל/ת משאבי אנוש", action: "selectOccupation" }
+                        ];
+                    } else {
+                        // Default occupations
+                        occupations = [
+                            { text: "מנהל/ת פרויקטים", action: "selectOccupation" },
+                            { text: "מומחה/ית תוכן", action: "selectOccupation" },
+                            { text: "מנחה מקצועי/ת", action: "selectOccupation" },
+                            { text: "יועץ/ת חינוכי/ת", action: "selectOccupation" },
+                            { text: "מפתח/ת הדרכה", action: "selectOccupation" }
+                        ];
+                    }
+                    
+                    setTimeout(() => {
+                        updateLoadingMessage(loadingMessage, `מעולה. בחרת באשכול ${text}. להלן העיסוקים שרלוונטיים לאשכול שנבחר. מה העיסוק אותו נרצה לתרגל?`, occupations);
+                        currentState = "selectingOccupation";
+                    }, 1000);
+                    break;
+                    
+                case "selectOccupation":
+                    addUserMessage(text);
+                    selectedOccupation = text;
+                    
+                    // Add loading indicator
+                    const loadingMessage2 = addBotMessage("", null, false, true);
+                    
+                    // Get skills based on selected occupation
+                    let skills = [];
+                    
+                    if (text === "חוקר/ת חינוך") {
+                        skills = [
+                            { text: "תכנון וביצוע מחקר", action: "selectSkill" },
+                            { text: "ניתוח נתונים איכותני וכמותי", action: "selectSkill" },
+                            { text: "כתיבה אקדמית", action: "selectSkill" },
+                            { text: "הצגת ממצאים", action: "selectSkill" },
+                            { text: "חשיבה ביקורתית", action: "selectSkill" },
+                            { text: "היכרות עם שיטות מחקר", action: "selectSkill" }
+                        ];
+                    } else if (text === "מרצה אקדמי/ת") {
+                        skills = [
+                            { text: "העברת הרצאות אפקטיביות", action: "selectSkill" },
+                            { text: "פיתוח חומרי לימוד", action: "selectSkill" },
+                            { text: "יכולת הסברה", action: "selectSkill" },
+                            { text: "הערכת סטודנטים", action: "selectSkill" },
+                            { text: "עדכון מתמיד בתחום הידע", action: "selectSkill" },
+                            { text: "תקשורת בינאישית", action: "selectSkill" }
+                        ];
+                    } else if (text === "מפתח/ת תכניות לימודים") {
+                        skills = [
+                            { text: "תכנון פדגוגי", action: "selectSkill" },
+                            { text: "הגדרת מטרות למידה", action: "selectSkill" },
+                            { text: "יצירת תכנים מותאמים", action: "selectSkill" },
+                            { text: "פיתוח שיטות הערכה", action: "selectSkill" },
+                            { text: "הבנת תהליכי למידה", action: "selectSkill" },
+                            { text: "יצירתיות ורענון חומרים", action: "selectSkill" }
+                        ];
+                    } else if (text === "מפתח/ת פתרונות בינה מלאכותית") {
+                        skills = [
+                            { text: "פיתוח אלגוריתמים", action: "selectSkill" },
+                            { text: "הבנת מודלי למידת מכונה", action: "selectSkill" },
+                            { text: "עיבוד שפה טבעית", action: "selectSkill" },
+                            { text: "ניתוח נתונים", action: "selectSkill" },
+                            { text: "פתרון בעיות מורכבות", action: "selectSkill" },
+                            { text: "הטמעת פתרונות AI בחינוך", action: "selectSkill" }
+                        ];
+                    } else {
+                        // Default skills for any occupation
+                        skills = [
+                            { text: "פתרון בעיות מורכבות", action: "selectSkill" },
+                            { text: "חשיבה ביקורתית", action: "selectSkill" },
+                            { text: "תקשורת אפקטיבית", action: "selectSkill" },
+                            { text: "עבודת צוות", action: "selectSkill" },
+                            { text: "הסתגלות לשינויים", action: "selectSkill" },
+                            { text: "למידה עצמאית", action: "selectSkill" }
+                        ];
+                    }
+                    
+                    setTimeout(() => {
+                        updateLoadingMessage(loadingMessage2, `מעולה. איזה כישור נרצה לפתח לעיסוק ${text}?`, skills);
+                        currentState = "selectingSkill";
+                    }, 1000);
+                    break;
+                    
+                case "selectSkill":
+                    addUserMessage(text);
+                    selectedSkill = text;
+                    
+                    // Add loading indicator
+                    const loadingMessage3 = addBotMessage("", null, false, true);
+                    
+                    // Get tasks based on selected skill
+                    let tasks = [];
+                    let taskDescriptions = [];
+                    
+                    if (text === "תכנון וביצוע מחקר") {
+                        tasks = [
+                            { text: "משימה 1: מיני-מחקר על שילוב מיומנויות בקורס", action: "selectTask" },
+                            { text: "משימה 2: ביקורת מחקר וסקירת ספרות", action: "selectTask" }
+                        ];
+                        taskDescriptions = [
+                            "הסטודנטים יתכננו ויבצעו מחקר קטן על האפקטיביות של שילוב מיומנויות תעסוקתיות בקורס אקדמי, יאספו נתונים מסטודנטים ומרצים, וינתחו את התוצאות. (4-6 שבועות)",
+                            "הסטודנטים יבצעו סקירת ספרות מקיפה על שילוב מיומנויות תעסוקתיות בהשכלה גבוהה, ינתחו מתודולוגיות מחקר ויציעו כיווני מחקר עתידיים. (2-3 שבועות)"
+                        ];
+                    } else if (text === "פיתוח אלגוריתמים") {
+                        tasks = [
+                            { text: "משימה 1: פיתוח אלגוריתם לניתוח תוכן חינוכי", action: "selectTask" },
+                            { text: "משימה 2: סדנת חשיבה אלגוריתמית", action: "selectTask" }
+                        ];
+                        taskDescriptions = [
+                            "פיתוח אלגוריתם שיסייע למרצים לנתח את הסילבוסים שלהם ולזהות הזדמנויות לשילוב מיומנויות תעסוקתיות. הסטודנטים יתכננו את האלגוריתם, יפתחו אב-טיפוס ויבחנו את יעילותו. (3-4 שבועות)",
+                            "סדנה המיישמת חשיבה אלגוריתמית לפתרון בעיות פדגוגיות. הסטודנטים יקבלו אתגר הוראה ויפתחו תהליך מובנה לפתרון. (120-180 דקות)"
+                        ];
+                    } else {
+                        // Default tasks for any skill
+                        tasks = [
+                            { text: "משימה 1: פיתוח תרגיל יישומי", action: "selectTask" },
+                            { text: "משימה 2: פרויקט שיתופי עם התעשייה", action: "selectTask" }
+                        ];
+                        taskDescriptions = [
+                            "פיתוח תרגיל המשלב את החומר האקדמי עם מיומנויות מעשיות הנדרשות בשוק העבודה. התרגיל יאפשר לסטודנטים להתנסות בסיטואציות דמויות מציאות. (90-120 דקות)",
+                            "יצירת פרויקט מעשי בו הסטודנטים יעבדו בשיתוף עם ארגון או חברה אמיתית על פתרון אתגר הקשור לתחום הלימוד. (4-6 שבועות)"
+                        ];
+                    }
+                    
+                    // Add task descriptions to the tasks array
+                    tasks.forEach((task, index) => {
+                        task.description = taskDescriptions[index];
+                    });
+                    
+                    setTimeout(() => {
+                        updateLoadingMessage(loadingMessage3, `על סמך הסילבוס, העיסוק והכישור שנבחר, להלן שתי הצעות למשימות שיאפשרו לתרגל ולפתח את הכישור ${text}:`);
+                        
+                        // Add task descriptions
+                        setTimeout(() => {
+                            tasks.forEach((task, index) => {
+                                addBotMessage(`<b>${task.text.split(":")[1].trim()}</b><br>${task.description}`);
+                            });
+                            
+                            // Add options
+                            setTimeout(() => {
+                                addBotMessage("עם איזו משימה תרצה להמשיך?", [
+                                    tasks[0],
+                                    tasks[1],
+                                    { text: "תציע לי עוד שתי משימות", action: "moreTasks" }
+                                ]);
+                                currentState = "selectingTask";
+                            }, 500);
+                        }, 500);
+                    }, 1500);
+                    break;
+                    
+                case "selectTask":
+                    addUserMessage(text);
+                    
+                    // Add loading indicator
+                    const loadingMessage4 = addBotMessage("", null, false, true);
+                    
+                    // Set selected task name
+                    const selectedTaskName = text.split(":")[1].trim();
+                    
+                    // Create a rubric for the selected task
+                    const rubricContent = `
+<h3>מחוון להערכת משימה: ${selectedTaskName}</h3>
+
+<h4>קטגוריות הערכה:</h4>
+
+<h5>1. הבנה וניתוח (25%)</h5>
+<ul>
+  <li><b>הבנה מעמיקה של הנושא והאתגר</b></li>
+  <li><b>ניתוח יסודי של הסוגיות הרלוונטיות</b></li>
+  <li><b>זיהוי נכון של הקשרים והשלכות</b></li>
+</ul>
+<p><b>מצוין:</b> ניתוח מעמיק ומקיף, זיהוי כל ההיבטים החשובים<br>
+<b>טוב:</b> ניתוח יסודי, זיהוי רוב ההיבטים החשובים<br>
+<b>סביר:</b> ניתוח בסיסי, זיהוי חלק מההיבטים<br>
+<b>טעון שיפור:</b> ניתוח שטחי, החמצת היבטים חשובים</p>
+
+<h5>2. יישום ידע (25%)</h5>
+<ul>
+  <li><b>יישום מתאים של תיאוריות ומושגים</b></li>
+  <li><b>שימוש נכון בכלים ושיטות רלוונטיים</b></li>
+  <li><b>הפגנת ידע מקצועי מעודכן</b></li>
+</ul>
+<p><b>מצוין:</b> יישום מדויק ויצירתי של ידע, שימוש מושכל בכלים מתקדמים<br>
+<b>טוב:</b> יישום נכון של ידע, שימוש יעיל בכלים מתאימים<br>
+<b>סביר:</b> יישום בסיסי של ידע, שימוש בכלים סטנדרטיים<br>
+<b>טעון שיפור:</b> יישום שגוי או חלקי, שימוש לא מתאים בכלים</p>
+
+<h5>3. חשיבה ביקורתית ויצירתיות (25%)</h5>
+<ul>
+  <li><b>הצגת חשיבה מקורית וגישות חדשניות</b></li>
+  <li><b>בחינה ביקורתית של חלופות ואפשרויות</b></li>
+  <li><b>פתרונות יצירתיים לאתגרים</b></li>
+</ul>
+<p><b>מצוין:</b> חשיבה פורצת דרך, פתרונות מקוריים ומבוססים<br>
+<b>טוב:</b> חשיבה יצירתית, פתרונות טובים ומנומקים<br>
+<b>סביר:</b> חשיבה קונבנציונלית, פתרונות סבירים<br>
+<b>טעון שיפור:</b> חשיבה מוגבלת, פתרונות שטחיים או לא ישימים</p>
+
+<h5>4. תקשורת והצגת רעיונות (25%)</h5>
+<ul>
+  <li><b>הצגה ברורה ומאורגנת של רעיונות</b></li>
+  <li><b>תקשורת אפקטיבית ומותאמת לקהל היעד</b></li>
+  <li><b>שימוש מתאים באמצעי המחשה ועזרים</b></li>
+</ul>
+<p><b>מצוין:</b> תקשורת בהירה ומשכנעת, מבנה מצוין, אמצעי המחשה אפקטיביים<br>
+<b>טוב:</b> תקשורת ברורה, מבנה טוב, אמצעי המחשה מתאימים<br>
+<b>סביר:</b> תקשורת מובנת, מבנה סביר, אמצעי המחשה בסיסיים<br>
+<b>טעון שיפור:</b> תקשורת לא ברורה, מבנה מבולבל, אמצעי המחשה חסרים או לא רלוונטיים</p>
+
+<h4>הערות נוספות:</h4>
+<p>המחוון יכול להתאים לצרכים הספציפיים של הקורס והמשימה. ניתן להוסיף, להסיר או לשנות קריטריונים ומשקלים בהתאם למטרות הספציפיות.</p>
+<p><b>המלצה:</b> מומלץ לתת משקל גבוה יותר לקטגוריות הקשורות ישירות למיומנויות התעסוקתיות שהמשימה מיועדת לפתח.</p>
+`;
+                    
+                    setTimeout(() => {
+                        updateLoadingMessage(loadingMessage4, `להלן המחוון שיעזור לך לבדוק את המשימה "${selectedTaskName}"`);
+                        
+                        setTimeout(() => {
+                            // Add rubric content as a message
+                            const rubricMessage = addBotMessage(rubricContent);
+                            
+                            setTimeout(() => {
+                                addBotMessage("האם תרצה להוריד את המחוון או להעלות סילבוס נוסף?", [
+                                    { text: "הורד מחוון", action: "downloadRubric" },
+                                    { text: "העלאת סילבוס נוסף", action: "uploadSyllabus" }
+                                ]);
+                                currentState = "finished";
+                            }, 500);
+                        }, 1000);
+                    }, 1500);
+                    break;
+                    
+                case "moreTasks":
+                    addUserMessage(text);
+                    
+                    // Add loading indicator
+                    const loadingMessage5 = addBotMessage("", null, false, true);
+                    
+                    // Get more tasks based on selected skill
+                    let moreTasks = [];
+                    let moreTaskDescriptions = [];
+                    
+                    if (selectedSkill === "תכנון וביצוע מחקר") {
+                        moreTasks = [
+                            { text: "משימה 3: פיתוח כלי מחקר חדשני", action: "selectTask" },
+                            { text: "משימה 4: הערכת מתודולוגיות מחקר", action: "selectTask" }
+                        ];
+                        moreTaskDescriptions = [
+                            "הסטודנטים יפתחו כלי מחקר חדשני למדידת אפקטיביות של מיומנויות תעסוקתיות בהוראה אקדמית. עליהם לתכנן את הכלי, לנמק את הבחירות המתודולוגיות, ולבצע פיילוט לתיקוף הכלי. (3-4 שבועות)",
+                            "הסטודנטים יבחנו וישוו בין מתודולוגיות מחקר שונות לחקר מיומנויות תעסוקתיות בסביבות חינוכיות. עליהם להציג את היתרונות והחסרונות של כל שיטה ולהמליץ על המתודולוגיה המתאימה ביותר לשאלת מחקר נתונה. (שבועיים)"
+                        ];
+                    } else if (selectedSkill === "פיתוח אלגוריתמים") {
+                        moreTasks = [
+                            { text: "משימה 3: בניית מנוע המלצות פדגוגי", action: "selectTask" },
+                            { text: "משימה 4: פיתוח מערכת לניתוח התקדמות למידה", action: "selectTask" }
+                        ];
+                        moreTaskDescriptions = [
+                            "הסטודנטים יפתחו מנוע המלצות שמציע למרצים דרכים לשלב מיומנויות תעסוקתיות בקורסים קיימים. המנגנון יתבסס על אלגוריתם שלוקח בחשבון את תוכן הקורס, מיומנויות נדרשות בשוק, ופרופיל הלומדים. (3-5 שבועות)",
+                            "הסטודנטים יפתחו מערכת אלגוריתמית לניתוח ההתקדמות בפיתוח מיומנויות תעסוקתיות בקרב סטודנטים. המערכת תכלול כלים לתיעוד, מעקב, וניתוח התפתחות המיומנויות לאורך זמן. (4 שבועות)"
+                        ];
+                    } else {
+                        // Default additional tasks for any skill
+                        moreTasks = [
+                            { text: "משימה 3: פיתוח סדנה מעשית", action: "selectTask" },
+                            { text: "משימה 4: הערכת עמיתים ומשוב", action: "selectTask" }
+                        ];
+                        moreTaskDescriptions = [
+                            "הסטודנטים יפתחו ויעבירו סדנה מעשית בת שעתיים שמטרתה להקנות מיומנות תעסוקתית ספציפית. עליהם לתכנן את מהלך הסדנה, להכין חומרים, ולהעביר אותה לעמיתיהם. (שבועיים להכנה + יום הסדנה)",
+                            "הסטודנטים יפתחו מנגנון הערכת עמיתים שמתמקד במיומנויות תעסוקתיות. המנגנון יכלול קריטריונים ברורים, כלי מדידה, ותהליך משוב בונה. הסטודנטים יתנסו ביישום המנגנון על עבודות של עמיתיהם. (3 שבועות)"
+                        ];
+                    }
+                    
+                    // Add task descriptions to the tasks array
+                    moreTasks.forEach((task, index) => {
+                        task.description = moreTaskDescriptions[index];
+                    });
+                    
+                    setTimeout(() => {
+                        updateLoadingMessage(loadingMessage5, `הנה שתי הצעות נוספות למשימות:`);
+                        
+                        // Add task descriptions
+                        setTimeout(() => {
+                            moreTasks.forEach((task, index) => {
+                                addBotMessage(`<b>${task.text.split(":")[1].trim()}</b><br>${task.description}`);
+                            });
+                            
+                            // Add options
+                            setTimeout(() => {
+                                addBotMessage("עם איזו משימה תרצה להמשיך?", moreTasks);
+                                currentState = "selectingTask";
+                            }, 500);
+                        }, 500);
+                    }, 1000);
+                    break;
+                    
+                case "downloadRubric":
+                    addUserMessage("הורד מחוון");
+                    
+                    // Show toast notification
+                    showToast("המחוון הורד בהצלחה");
+                    
+                    // Add loading indicator
+                    const loadingMessage6 = addBotMessage("", null, false, true);
+                    
+                    setTimeout(() => {
+                        updateLoadingMessage(loadingMessage6, "המחוון הורד בהצלחה. האם תרצה להעלות סילבוס נוסף?", [
+                            { text: "העלאת סילבוס נוסף", action: "uploadSyllabus" },
+                            { text: "לא תודה", action: "endSession" }
+                        ]);
+                    }, 1000);
+                    break;
+                    
+                case "endSession":
+                    addUserMessage("לא תודה");
+                    
+                    // Add loading indicator
+                    const loadingMessage7 = addBotMessage("", null, false, true);
+                    
+                    setTimeout(() => {
+                        updateLoadingMessage(loadingMessage7, "תודה על השימוש באקדמיה פלוס! המשוב וההצעות שלך יסייעו למרצים להטמיע מיומנויות תעסוקתיות בהוראה. נשמח לסייע לך שוב בפעם הבאה.");
+                    }, 1000);
+                    break;
+            }
+        }
+        
+        // Simulate file upload
+        function simulateFileUpload() {
+            // Show toast notification
+            showToast("מעלה קובץ...");
+            
+            // After 1.5 seconds, show success
+            setTimeout(() => {
+                addUserMessage("הקובץ הועלה: סילבוס_קורס_תקשורת_דיגיטלית.pdf");
+                
+                // Show toast notification
+                showToast("הקובץ הועלה בהצלחה");
+                
+                // Add loading indicator for bot response
+                const loadingMessage = addBotMessage("", null, false, true);
+                
+                setTimeout(() => {
+                    updateLoadingMessage(loadingMessage, "תודה על העלאת הסילבוס. הקובץ לא נשמר במערכת והוא משמש אך ורק לצורך הניתוח וההמלצות שאציע לך.");
+                    
+                    setTimeout(() => {
+                        // Skip additional questions and go straight to cluster recommendations
+                        const loadingAnalysis = addBotMessage("מנתח את הסילבוס...", null, false, true);
+                        
+                        setTimeout(() => {
+                            updateLoadingMessage(loadingAnalysis, "על סמך ניתוח הסילבוס שהעלית, זיהיתי מספר אשכולות מיומנויות רלוונטיים. עם איזה מהם תרצה להמשיך?", [
+                                { text: "מחקר ואקדמיה", action: "selectCluster" },
+                                { text: "טכנולוגיה וחדשנות", action: "selectCluster" },
+                                { text: "פיתוח כישורים והדרכה", action: "selectCluster" },
+                                { text: "דיגיטל ורשתות חברתיות", action: "selectCluster" },
+                                { text: "ייעוץ וניהול", action: "selectCluster" }
+                            ]);
+                            currentState = "selectingCluster";
+                        }, 2000);
+                    }, 1000);
+                }, 1500);
+            }, 1500);
+        }
+        
+        // Show toast notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
