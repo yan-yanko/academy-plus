@@ -2,7 +2,7 @@
 const config = {
     // OpenAI API הגדרות
     api: {
-        key: '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',
+        key: 'YOUR-API-KEY-HERE', // יש להחליף עם המפתח שלך
         endpoint: 'https://api.openai.com/v1/chat/completions',
         model: 'gpt-3.5-turbo',
         temperature: 0.7,
