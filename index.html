@@ -28,6 +28,7 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+            min-height: 100vh;
             max-width: 1000px;
             margin: 0 auto;
             width: 100%;
@@ -348,7 +349,7 @@
             if (isLoading) {
                 contentDiv.innerHTML = '<div class="loading-indicator"><span></span><span></span><span></span></div>';
             } else {
-                contentDiv.innerText = text;
+                contentDiv.innerHTML = text;
             }
             
             messageDiv.appendChild(avatarDiv);
