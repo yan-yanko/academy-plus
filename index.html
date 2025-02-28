@@ -421,41 +421,43 @@
                 const data = await response.json();
                 console.log('OpenAI Response:', data);
                 
+                let content = data.choices[0].message.content;
+                
+                // הסרת תגיות json אם קיימות
+                content = content.replace(/```json\n/g, '').replace(/```/g, '');
+                
                 let clusters = [];
-                const content = data.choices[0].message.content;
-                
-                // ניסיון לחלץ את האשכולות מהטקסט
-                const lines = content.split('\n').filter(line => line.trim());
-                
-                lines.forEach(line => {
-                    // מנקה את השורה מתווים מיוחדים ומספרים
-                    let cleanLine = line
-                        .replace(/^[-\d\.\"\'\[\]\{\}]+/g, '') // מסיר מספרים וסימנים בתחילת השורה
-                        .replace(/["']/g, '') // מסיר גרשיים
-                        .trim();
+                try {
+                    // ניסיון לפרסר JSON
+                    clusters = JSON.parse(content);
+                    console.log('Successfully parsed JSON:', clusters);
+                } catch (parseError) {
+                    console.error('Failed to parse JSON:', parseError);
+                    // אם הפרסור נכשל, ננסה לחלץ את האשכולות מהטקסט
+                    const lines = content.split('\n').filter(line => line.trim());
                     
-                    if (cleanLine) {
-                        clusters.push(cleanLine);
-                    }
-                });
-
-                // אם לא הצלחנו למצוא אשכולות, ננסה לפצל לפי סימנים נפוצים
-                if (clusters.length === 0) {
-                    clusters = content
-                        .split(/[,\n\.]/)
-                        .map(item => item.trim())
-                        .filter(item => item.length > 0);
+                    lines.forEach(line => {
+                        // מנקה את השורה מתווים מיוחדים ומספרים
+                        let cleanLine = line
+                            .replace(/^[-\d\.\"\'\[\]\{\}]+/g, '') // מסיר מספרים וסימנים בתחילת השורה
+                            .replace(/["']/g, '') // מסיר גרשיים
+                            .trim();
+                        
+                        if (cleanLine) {
+                            clusters.push(cleanLine);
+                        }
+                    });
                 }
 
-                // אם עדיין אין אשכולות, נשתמש בכל הטקסט כאשכול אחד
+                // אם אין אשכולות, נשתמש בכל הטקסט כאשכול אחד
                 if (clusters.length === 0) {
                     clusters = [content.trim()];
                 }
 
-                console.log('Processed clusters:', clusters);
+                console.log('Final clusters:', clusters);
                 
                 updateLoadingMessage(loadingMessage,
-                    'מצוין! זיהיתי מספר אשכולות מיומנות שניתן לפתח בקורס זה. באיזה אשכול תרצה להתמקד?',
+                    'מצוין! זיהיתי מספר אשכולות מקצועות שניתן לפתח בקורס זה. באיזה אשכול תרצה להתמקד?',
                     clusters.map(cluster => ({ text: cluster, action: "selectCluster" }))
                 );
                 currentState = "selectingCluster";
