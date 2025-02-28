@@ -1,17 +1,15 @@
 // קונפיגורציית המערכת
 const config = {
     // OpenAI API הגדרות
-    api: {
-        key: 'YOUR-API-KEY-HERE', // יש להחליף עם המפתח שלך
-        endpoint: 'https://api.openai.com/v1/chat/completions',
-        model: 'gpt-3.5-turbo',
-        temperature: 0.7,
-        maxTokens: 2048
+    openai: {
+        key: 'YOUR-API-KEY-HERE', // יש להחליף במפתח API אמיתי
+        model: 'gpt-4-1106-preview',
+        max_tokens: 2000
     },
 
     // הגדרות המערכת
     system: {
-        allowedFileTypes: ['.txt', '.pdf', '.doc', '.docx'],
+        allowedFileTypes: ['.pdf', '.txt', '.doc', '.docx'],
         maxFileSize: 10 * 1024 * 1024, // 10MB
         defaultLanguage: 'he',
         supportedLanguages: ['he', 'en'],
@@ -20,13 +18,14 @@ const config = {
     // הודעות מערכת
     messages: {
         uploadSuccess: 'הקובץ הועלה בהצלחה!',
-        uploadError: 'אירעה שגיאה בהעלאת הקובץ.',
+        uploadError: 'אירעה שגיאה בהעלאת הקובץ. אנא נסה שוב.',
         invalidFileType: 'סוג הקובץ אינו נתמך. אנא העלה קובץ מסוג PDF, TXT, DOC או DOCX.',
         fileTooLarge: 'הקובץ גדול מדי. הגודל המקסימלי המותר הוא 10MB.',
         analysisError: 'אירעה שגיאה בניתוח הסילבוס.',
         noFileSelected: 'לא נבחר קובץ להעלאה.',
         processingFile: 'מעבד את הקובץ...',
-        analyzingSyllabus: 'מנתח את הסילבוס...'
+        analyzingSyllabus: 'מנתח את הסילבוס...',
+        processingError: 'אירעה שגיאה בעיבוד הקובץ. אנא נסה שוב.'
     },
 
     // פרומפטים ל-ChatGPT
@@ -37,6 +36,4 @@ const config = {
         getExercises: 'עבור המיומנות SKILL, תן לי רשימה של תרגילים מומלצים. התשובה צריכה להיות בעברית ובפורמט הבא:\nשם התרגיל 1: תיאור התרגיל\nשם התרגיל 2: תיאור התרגיל\nשם התרגיל 3: תיאור התרגיל',
         getRubric: 'צור רובריקה להערכת המיומנות SKILL. התשובה צריכה להיות בעברית ובפורמט הבא:\nקריטריון 1:\n- רמה מתחילה: תיאור\n- רמה מתקדמת: תיאור\n- רמה מצוינת: תיאור\n\nקריטריון 2:\n- רמה מתחילה: תיאור\n- רמה מתקדמת: תיאור\n- רמה מצוינת: תיאור'
     }
-};
-
-export default config; 
+}; 
