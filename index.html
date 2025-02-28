@@ -10,14 +10,28 @@
     </script>
     <script>
         // טעינת משתנה הסביבה מ-Netlify
-        fetch('/.netlify/functions/get-api-key')
-            .then(response => response.json())
-            .then(data => {
+        window.initializeApp = async function() {
+            try {
+                const response = await fetch('/.netlify/functions/get-api-key');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
                 window.OPENAI_API_KEY = data.apiKey;
-            })
-            .catch(error => console.error('Error loading API key:', error));
+                console.log('API key loaded successfully');
+                // רק אחרי שקיבלנו את המפתח, נטען את הקונפיגורציה ונתחיל את האפליקציה
+                const configScript = document.createElement('script');
+                configScript.src = 'src/config/config.js';
+                configScript.onload = function() {
+                    console.log('Config loaded successfully');
+                    initializeChat();
+                };
+                document.head.appendChild(configScript);
+            } catch (error) {
+                console.error('Error loading API key:', error);
+            }
+        };
     </script>
-    <script src="src/config/config.js"></script>
     <style>
         * {
             margin: 0;
@@ -273,7 +287,7 @@
         }
     </style>
 </head>
-<body>
+<body onload="initializeApp()">
     <div class="app-container" id="app">
         <!-- Chat Screen -->
         <div id="chat-screen">
