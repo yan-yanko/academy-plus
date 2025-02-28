@@ -2,7 +2,13 @@
 const config = {
     // OpenAI API הגדרות
     openai: {
-        key: window.OPENAI_API_KEY || 'YOUR-API-KEY-HERE', // יתקבל כמשתנה סביבה
+        get key() {
+            if (!window.OPENAI_API_KEY) {
+                console.error('OpenAI API key is not loaded yet!');
+                return null;
+            }
+            return window.OPENAI_API_KEY;
+        },
         model: 'gpt-4-1106-preview',
         max_tokens: 2000
     },
