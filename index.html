@@ -394,45 +394,65 @@
         }
 
         // עיבוד תוכן הקובץ
-        async function processFileContent(text, loadingMessage) {
-            try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${window.OPENAI_API_KEY}`
+async function processFileContent(text, loadingMessage) {
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${window.OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: config.openai.model,
+                messages: [
+                    {
+                        role: "system",
+                        content: config.prompts.analyzeSyllabus
                     },
-                    body: JSON.stringify({
-                        model: config.openai.model,
-                        messages: [
-                            {
-                                role: "system",
-                                content: config.prompts.analyzeSyllabus
-                            },
-                            {
-                                role: "user",
-                                content: text
-                            }
-                        ],
-                        temperature: 0.7
-                    })
-                });
+                    {
+                        role: "user",
+                        content: text
+                    }
+                ],
+                temperature: 0.7
+            })
+        });
 
-                const data = await response.json();
-                const clusters = JSON.parse(data.choices[0].message.content);
-                
-                updateLoadingMessage(loadingMessage,
-                    'מצוין! זיהיתי מספר אשכולות מיומנות שניתן לפתח בקורס זה. באיזה אשכול תרצה להתמקד?',
-                    clusters.map(cluster => ({ text: cluster, action: "selectCluster" }))
-                );
-                currentState = "selectingCluster";
-            } catch (error) {
-                console.error('Error:', error);
-                showToast(config.messages.processingError);
-                updateLoadingMessage(loadingMessage, config.messages.processingError);
+        const data = await response.json();
+        console.log('OpenAI Response:', data); // הוספת לוג לבדיקה
+        
+        let clusters;
+        try {
+            // ניסיון לפרסר את התשובה כ-JSON
+            clusters = JSON.parse(data.choices[0].message.content);
+        } catch (parseError) {
+            console.error('Error parsing JSON:', parseError);
+            // אם הפרסור נכשל, ננסה לנקות את הטקסט ולפרסר שוב
+            const cleanContent = data.choices[0].message.content
+                .replace(/[\u{0080}-\u{FFFF}]/gu, '') // הסרת תווים מיוחדים
+                .replace(/[\n\r]/g, '') // הסרת שורות חדשות
+                .trim(); // הסרת רווחים מיותרים
+            
+            try {
+                clusters = JSON.parse(cleanContent);
+            } catch (secondParseError) {
+                console.error('Error parsing cleaned JSON:', secondParseError);
+                // אם גם זה נכשל, נשתמש בתשובה כמערך של מחרוזת אחת
+                clusters = [data.choices[0].message.content];
             }
         }
-
+        
+        updateLoadingMessage(loadingMessage,
+            'מצוין! זיהיתי מספר אשכולות מיומנות שניתן לפתח בקורס זה. באיזה אשכול תרצה להתמקד?',
+            clusters.map(cluster => ({ text: cluster, action: "selectCluster" }))
+        );
+        currentState = "selectingCluster";
+    } catch (error) {
+        console.error('Error:', error);
+        showToast(config.messages.processingError);
+        updateLoadingMessage(loadingMessage, config.messages.processingError);
+    }
+}
         // Handle option button clicks
         async function handleOptionClick(action, text) {
             console.log('Option clicked:', action, text);
