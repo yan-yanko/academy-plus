@@ -508,8 +508,7 @@
         function handleOptionClick(action, text) {
             switch(action) {
                 case "uploadSyllabus":
-                    addUserMessage("העלאת סילבוס");
-                    simulateFileUpload();
+                    simulateFileUpload();  // קודם מפעילים את חלון העלאת הקובץ
                     break;
                     
                 case "selectCluster":
@@ -517,7 +516,7 @@
                     selectedCluster = text;
                     
                     // Add loading indicator
-                    const loadingMessage = addBotMessage("", null, false, true);
+                    const loadingMessage2 = addBotMessage("", null, false, true);
                     
                     // Get occupations based on selected cluster
                     let occupations = [];
@@ -579,7 +578,7 @@
                     }
                     
                     setTimeout(() => {
-                        updateLoadingMessage(loadingMessage, `מעולה. בחרת באשכול ${text}. להלן העיסוקים שרלוונטיים לאשכול שנבחר. מה העיסוק אותו נרצה לתרגל?`, occupations);
+                        updateLoadingMessage(loadingMessage2, `מעולה. בחרת באשכול ${text}. להלן העיסוקים שרלוונטיים לאשכול שנבחר. מה העיסוק אותו נרצה לתרגל?`, occupations);
                         currentState = "selectingOccupation";
                     }, 1000);
                     break;
@@ -589,7 +588,7 @@
                     selectedOccupation = text;
                     
                     // Add loading indicator
-                    const loadingMessage2 = addBotMessage("", null, false, true);
+                    const loadingMessage3 = addBotMessage("", null, false, true);
                     
                     // Get skills based on selected occupation
                     let skills = [];
@@ -643,7 +642,7 @@
                     }
                     
                     setTimeout(() => {
-                        updateLoadingMessage(loadingMessage2, `מעולה. איזה כישור נרצה לפתח לעיסוק ${text}?`, skills);
+                        updateLoadingMessage(loadingMessage3, `מעולה. איזה כישור נרצה לפתח לעיסוק ${text}?`, skills);
                         currentState = "selectingSkill";
                     }, 1000);
                     break;
@@ -653,7 +652,7 @@
                     selectedSkill = text;
                     
                     // Add loading indicator
-                    const loadingMessage3 = addBotMessage("", null, false, true);
+                    const loadingMessage4 = addBotMessage("", null, false, true);
                     
                     // Get tasks based on selected skill
                     let tasks = [];
@@ -695,7 +694,7 @@
                     });
                     
                     setTimeout(() => {
-                        updateLoadingMessage(loadingMessage3, `על סמך הסילבוס, העיסוק והכישור שנבחר, להלן שתי הצעות למשימות שיאפשרו לתרגל ולפתח את הכישור ${text}:`);
+                        updateLoadingMessage(loadingMessage4, `על סמך הסילבוס, העיסוק והכישור שנבחר, להלן שתי הצעות למשימות שיאפשרו לתרגל ולפתח את הכישור ${text}:`);
                         
                         // Add task descriptions
                         setTimeout(() => {
@@ -720,7 +719,7 @@
                     addUserMessage(text);
                     
                     // Add loading indicator
-                    const loadingMessage4 = addBotMessage("", null, false, true);
+                    const loadingMessage5 = addBotMessage("", null, false, true);
                     
                     // Set selected task name
                     const selectedTaskName = text.split(":")[1].trim();
@@ -781,7 +780,7 @@
 `;
                     
                     setTimeout(() => {
-                        updateLoadingMessage(loadingMessage4, `להלן המחוון שיעזור לך לבדוק את המשימה "${selectedTaskName}"`);
+                        updateLoadingMessage(loadingMessage5, `להלן המחוון שיעזור לך לבדוק את המשימה "${selectedTaskName}"`);
                         
                         setTimeout(() => {
                             // Add rubric content as a message
@@ -802,7 +801,7 @@
                     addUserMessage(text);
                     
                     // Add loading indicator
-                    const loadingMessage5 = addBotMessage("", null, false, true);
+                    const loadingMessage6 = addBotMessage("", null, false, true);
                     
                     // Get more tasks based on selected skill
                     let moreTasks = [];
@@ -844,7 +843,7 @@
                     });
                     
                     setTimeout(() => {
-                        updateLoadingMessage(loadingMessage5, `הנה שתי הצעות נוספות למשימות:`);
+                        updateLoadingMessage(loadingMessage6, `הנה שתי הצעות נוספות למשימות:`);
                         
                         // Add task descriptions
                         setTimeout(() => {
@@ -868,10 +867,10 @@
                     showToast("המחוון הורד בהצלחה");
                     
                     // Add loading indicator
-                    const loadingMessage6 = addBotMessage("", null, false, true);
+                    const loadingMessage7 = addBotMessage("", null, false, true);
                     
                     setTimeout(() => {
-                        updateLoadingMessage(loadingMessage6, "המחוון הורד בהצלחה. האם תרצה להעלות סילבוס נוסף?", [
+                        updateLoadingMessage(loadingMessage7, "המחוון הורד בהצלחה. האם תרצה להעלות סילבוס נוסף?", [
                             { text: "העלאת סילבוס נוסף", action: "uploadSyllabus" },
                             { text: "לא תודה", action: "endSession" }
                         ]);
@@ -882,10 +881,10 @@
                     addUserMessage("לא תודה");
                     
                     // Add loading indicator
-                    const loadingMessage7 = addBotMessage("", null, false, true);
+                    const loadingMessage8 = addBotMessage("", null, false, true);
                     
                     setTimeout(() => {
-                        updateLoadingMessage(loadingMessage7, "תודה על השימוש באקדמיה פלוס! המשוב וההצעות שלך יסייעו למרצים להטמיע מיומנויות תעסוקתיות בהוראה. נשמח לסייע לך שוב בפעם הבאה.");
+                        updateLoadingMessage(loadingMessage8, "תודה על השימוש באקדמיה פלוס! המשוב וההצעות שלך יסייעו למרצים להטמיע מיומנויות תעסוקתיות בהוראה. נשמח לסייע לך שוב בפעם הבאה.");
                     }, 1000);
                     break;
             }
@@ -908,6 +907,7 @@
                 const file = e.target.files[0];
                 if (!file) {
                     showToast(config.messages.noFileSelected);
+                    document.body.removeChild(fileInput);
                     return;
                 }
 
@@ -915,15 +915,19 @@
                 const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
                 if (!config.system.allowedFileTypes.includes(fileExtension)) {
                     showToast(config.messages.invalidFileType);
+                    document.body.removeChild(fileInput);
                     return;
                 }
 
                 // בדיקת גודל הקובץ
                 if (file.size > config.system.maxFileSize) {
                     showToast(config.messages.fileTooLarge);
+                    document.body.removeChild(fileInput);
                     return;
                 }
 
+                // רק אם הקובץ תקין, נוסיף את ההודעות לצ'אט
+                addUserMessage("העלאת סילבוס");
                 addUserMessage(`הקובץ הועלה: ${file.name}`);
                 showToast(config.messages.uploadSuccess);
 
