@@ -115,7 +115,7 @@
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${config.openai.key}`
+                                'Authorization': `Bearer ${window.OPENAI_API_KEY}`
                             },
                             body: JSON.stringify({
                                 model: config.openai.model,
@@ -159,7 +159,7 @@
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${config.openai.key}`
+                                'Authorization': `Bearer ${window.OPENAI_API_KEY}`
                             },
                             body: JSON.stringify({
                                 model: config.openai.model,
@@ -203,7 +203,7 @@
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${config.openai.key}`
+                                'Authorization': `Bearer ${window.OPENAI_API_KEY}`
                             },
                             body: JSON.stringify({
                                 model: config.openai.model,
@@ -254,7 +254,7 @@
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${config.openai.key}`
+                                'Authorization': `Bearer ${window.OPENAI_API_KEY}`
                             },
                             body: JSON.stringify({
                                 model: config.openai.model,
@@ -968,7 +968,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${config.openai.key}`
+                            'Authorization': `Bearer ${window.OPENAI_API_KEY}`
                         },
                         body: JSON.stringify({
                             model: config.openai.model,
