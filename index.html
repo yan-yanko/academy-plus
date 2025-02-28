@@ -8,6 +8,15 @@
     <script>
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
+    <script>
+        // טעינת משתנה הסביבה מ-Netlify
+        fetch('/.netlify/functions/get-api-key')
+            .then(response => response.json())
+            .then(data => {
+                window.OPENAI_API_KEY = data.apiKey;
+            })
+            .catch(error => console.error('Error loading API key:', error));
+    </script>
     <script src="src/config/config.js"></script>
     <style>
         * {
