@@ -24,6 +24,93 @@
         let selectedCluster = "";
         let selectedOccupation = "";
         let selectedSkill = "";
+
+        // Add a bot message to the chat
+        function addBotMessage(text, options = null, fileUpload = false, isLoading = false) {
+            const chatContainer = document.getElementById('chat-container');
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot-message';
+            
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'avatar bot-avatar';
+            avatarDiv.innerText = 'AI';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            if (isLoading) {
+                contentDiv.innerHTML = '<div class="loading-indicator"><span></span><span></span><span></span></div>';
+            } else {
+                contentDiv.innerHTML = text;
+            }
+            
+            messageDiv.appendChild(avatarDiv);
+            messageDiv.appendChild(contentDiv);
+            
+            if (options && !isLoading) {
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'options-container';
+                
+                options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.className = 'option-button';
+                    button.innerText = option.text;
+                    button.onclick = () => handleOptionClick(option.action, option.text);
+                    optionsContainer.appendChild(button);
+                });
+                
+                contentDiv.appendChild(optionsContainer);
+            }
+            
+            if (fileUpload && !isLoading) {
+                const fileUploadDiv = document.createElement('div');
+                fileUploadDiv.className = 'file-upload';
+                fileUploadDiv.innerHTML = '<p>לחץ כאן להעלאת קובץ הסילבוס שלך<br>(תומך ב-PPT, PDF, Word)</p>';
+                fileUploadDiv.onclick = () => simulateFileUpload();
+                
+                contentDiv.appendChild(fileUploadDiv);
+            }
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        // Add a user message to the chat
+        function addUserMessage(text) {
+            const chatContainer = document.getElementById('chat-container');
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user-message';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerText = text;
+            
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'avatar user-avatar';
+            avatarDiv.innerText = userData.firstName.charAt(0);
+            
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(avatarDiv);
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Start the chat with welcome message
+        function startChat() {
+            console.log('Starting chat...');
+            addBotMessage(`שלום ${userData.firstName}, נעים להכיר. אני עוזר הוראה מבוסס בינה מלאכותית המתמחה בזיהוי והטמעת מיומנויות תעסוקתיות בקורסים אקדמיים. אנתח את תוכן הקורס שלך, אזהה מיומנויות רלוונטיות לשוק העבודה, ואציע דרכים מעשיות לשילובן בהוראה שלך.`);
+            
+            setTimeout(() => {
+                addBotMessage(`בוא נתחיל מהעלאת הסילבוס שאתה מתכוון ללמד.`, [
+                    { text: "העלאת סילבוס", action: "uploadSyllabus" }
+                ]);
+            }, 1000);
+        }
         
         // Initialize the chat when page loads
         window.onload = function() {
@@ -60,679 +147,5 @@
                 console.error('Error loading API key:', error);
             }
         };
-        
-        // Start the chat with welcome message
-        function startChat() {
-            console.log('Starting chat...');
-            addBotMessage(`שלום ${userData.firstName}, נעים להכיר. אני עוזר הוראה מבוסס בינה מלאכותית המתמחה בזיהוי והטמעת מיומנויות תעסוקתיות בקורסים אקדמיים. אנתח את תוכן הקורס שלך, אזהה מיומנויות רלוונטיות לשוק העבודה, ואציע דרכים מעשיות לשילובן בהוראה שלך.`);
-            
-            setTimeout(() => {
-                addBotMessage(`בוא נתחיל מהעלאת הסילבוס שאתה מתכוון ללמד.`, [
-                    { text: "העלאת סילבוס", action: "uploadSyllabus" }
-                ]);
-            }, 1000);
-        }
 
-        // Handle option button clicks
-        async function handleOptionClick(action, text) {
-            console.log('Option clicked:', action, text);
-            switch(action) {
-                case "uploadSyllabus":
-                    const fileInput = document.createElement('input');
-                    fileInput.type = 'file';
-                    fileInput.accept = config.system.allowedFileTypes.join(',');
-                    fileInput.style.display = 'none';
-                    document.body.appendChild(fileInput);
-
-                    fileInput.click();
-
-                    fileInput.onchange = async function(e) {
-                        console.log('File selected');
-                        const file = e.target.files[0];
-                        if (!file) {
-                            showToast(config.messages.noFileSelected);
-                            document.body.removeChild(fileInput);
-                            return;
-                        }
-
-                        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-                        if (!config.system.allowedFileTypes.includes(fileExtension)) {
-                            showToast(config.messages.invalidFileType);
-                            document.body.removeChild(fileInput);
-                            return;
-                        }
-
-                        if (file.size > config.system.maxFileSize) {
-                            showToast(config.messages.fileTooLarge);
-                            document.body.removeChild(fileInput);
-                            return;
-                        }
-
-                        addUserMessage("העלאת סילבוס");
-                        addUserMessage(`הקובץ הועלה: ${file.name}`);
-                        showToast(config.messages.uploadSuccess);
-
-                        const loadingMessage = addBotMessage("מנתח את הסילבוס...", null, false, true);
-
-                        try {
-                            const text = await readFileContent(file);
-                            console.log('File content read successfully');
-                            await processFileContent(text, loadingMessage);
-                        } catch (error) {
-                            console.error('Error processing file:', error);
-                            showToast(config.messages.processingError);
-                            updateLoadingMessage(loadingMessage, config.messages.processingError);
-                        } finally {
-                            document.body.removeChild(fileInput);
-                        }
-                    };
-                    break;
-                    
-                case "selectCluster":
-                    addUserMessage(text);
-                    selectedCluster = text;
-                    const loadingMessage2 = addBotMessage("", null, false, true);
-                    
-                    try {
-                        // שליחת בקשה ל-OpenAI לקבלת עיסוקים רלוונטיים לאשכול
-                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${window.OPENAI_API_KEY}`
-                            },
-                            body: JSON.stringify({
-                                model: config.openai.model,
-                                messages: [
-                                    {
-                                        role: "system",
-                                        content: config.prompts.getRelevantOccupations
-                                    },
-                                    {
-                                        role: "user",
-                                        content: `האשכול שנבחר: ${text}`
-                                    }
-                                ],
-                                temperature: 0.7
-                            })
-                        });
-
-                        const data = await response.json();
-                        const occupations = JSON.parse(data.choices[0].message.content);
-                        
-                        updateLoadingMessage(loadingMessage2, 
-                            `מעולה. בחרת באשכול ${text}. להלן העיסוקים שרלוונטיים לאשכול שנבחר. מה העיסוק אותו נרצה לתרגל?`,
-                            occupations.map(occupation => ({ text: occupation, action: "selectOccupation" }))
-                        );
-                        currentState = "selectingOccupation";
-                    } catch (error) {
-                        console.error('Error:', error);
-                        showToast(config.messages.processingError);
-                        updateLoadingMessage(loadingMessage2, config.messages.processingError);
-                    }
-                    break;
-                    
-                case "selectOccupation":
-                    addUserMessage(text);
-                    selectedOccupation = text;
-                    const loadingMessage3 = addBotMessage("", null, false, true);
-                    
-                    try {
-                        // שליחת בקשה ל-OpenAI לקבלת כישורים רלוונטיים לעיסוק
-                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${window.OPENAI_API_KEY}`
-                            },
-                            body: JSON.stringify({
-                                model: config.openai.model,
-                                messages: [
-                                    {
-                                        role: "system",
-                                        content: config.prompts.getRelevantSkills
-                                    },
-                                    {
-                                        role: "user",
-                                        content: `העיסוק שנבחר: ${text}`
-                                    }
-                                ],
-                                temperature: 0.7
-                            })
-                        });
-
-                        const data = await response.json();
-                        const skills = JSON.parse(data.choices[0].message.content);
-                        
-                        updateLoadingMessage(loadingMessage3,
-                            `מעולה. איזה כישור נרצה לפתח לעיסוק ${text}?`,
-                            skills.map(skill => ({ text: skill, action: "selectSkill" }))
-                        );
-                        currentState = "selectingSkill";
-                    } catch (error) {
-                        console.error('Error:', error);
-                        showToast(config.messages.processingError);
-                        updateLoadingMessage(loadingMessage3, config.messages.processingError);
-                    }
-                    break;
-                    
-                case "selectSkill":
-                    addUserMessage(text);
-                    selectedSkill = text;
-                    const loadingMessage4 = addBotMessage("", null, false, true);
-                    
-                    try {
-                        // שליחת בקשה ל-OpenAI לקבלת תרגילים לכישור
-                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${window.OPENAI_API_KEY}`
-                            },
-                            body: JSON.stringify({
-                                model: config.openai.model,
-                                messages: [
-                                    {
-                                        role: "system",
-                                        content: config.prompts.getExercises
-                                    },
-                                    {
-                                        role: "user",
-                                        content: `אשכול: ${selectedCluster}\nעיסוק: ${selectedOccupation}\nכישור: ${text}`
-                                    }
-                                ],
-                                temperature: 0.7
-                            })
-                        });
-
-                        const data = await response.json();
-                        const exercises = JSON.parse(data.choices[0].message.content);
-                        
-                        updateLoadingMessage(loadingMessage4,
-                            `על סמך הסילבוס, העיסוק והכישור שנבחר, להלן שתי הצעות למשימות שיאפשרו לתרגל ולפתח את הכישור ${text}:`
-                        );
-                        
-                        exercises.forEach((exercise, index) => {
-                            addBotMessage(`<b>${exercise.title}</b><br>${exercise.description}`);
-                        });
-                        
-                        addBotMessage("עם איזו משימה תרצה להמשיך?", [
-                            { text: exercises[0].title, action: "selectTask" },
-                            { text: exercises[1].title, action: "selectTask" }
-                        ]);
-                        currentState = "selectingTask";
-                    } catch (error) {
-                        console.error('Error:', error);
-                        showToast(config.messages.processingError);
-                        updateLoadingMessage(loadingMessage4, config.messages.processingError);
-                    }
-                    break;
-                    
-                case "selectTask":
-                    addUserMessage(text);
-                    const loadingMessage5 = addBotMessage("", null, false, true);
-                    
-                    try {
-                        // שליחת בקשה ל-OpenAI לקבלת מחוון למשימה
-                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${window.OPENAI_API_KEY}`
-                            },
-                            body: JSON.stringify({
-                                model: config.openai.model,
-                                messages: [
-                                    {
-                                        role: "system",
-                                        content: config.prompts.createRubric
-                                    },
-                                    {
-                                        role: "user",
-                                        content: `אשכול: ${selectedCluster}\nעיסוק: ${selectedOccupation}\nכישור: ${selectedSkill}\nמשימה: ${text}`
-                                    }
-                                ],
-                                temperature: 0.7
-                            })
-                        });
-
-                        const data = await response.json();
-                        const rubric = data.choices[0].message.content;
-                        
-                        updateLoadingMessage(loadingMessage5, `להלן המחוון שיעזור לך לבדוק את המשימה "${text}"`);
-                        
-                        addBotMessage(rubric);
-                        
-                        addBotMessage("האם תרצה להוריד את המחוון או להעלות סילבוס נוסף?", [
-                            { text: "הורד מחוון", action: "downloadRubric" },
-                            { text: "העלאת סילבוס נוסף", action: "uploadSyllabus" }
-                        ]);
-                        currentState = "finished";
-                    } catch (error) {
-                        console.error('Error:', error);
-                        showToast(config.messages.processingError);
-                        updateLoadingMessage(loadingMessage5, config.messages.processingError);
-                    }
-                    break;
-                    
-                case "downloadRubric":
-                    addUserMessage("הורד מחוון");
-                    
-                    // Show toast notification
-                    showToast("המחוון הורד בהצלחה");
-                    
-                    // Add loading indicator
-                    const loadingMessage7 = addBotMessage("", null, false, true);
-                    
-                    setTimeout(() => {
-                        updateLoadingMessage(loadingMessage7, "המחוון הורד בהצלחה. האם תרצה להעלות סילבוס נוסף?", [
-                            { text: "העלאת סילבוס נוסף", action: "uploadSyllabus" },
-                            { text: "לא תודה", action: "endSession" }
-                        ]);
-                    }, 1000);
-                    break;
-                    
-                case "endSession":
-                    addUserMessage("לא תודה");
-                    
-                    // Add loading indicator
-                    const loadingMessage8 = addBotMessage("", null, false, true);
-                    
-                    setTimeout(() => {
-                        updateLoadingMessage(loadingMessage8, "תודה על השימוש באקדמיה פלוס! המשוב וההצעות שלך יסייעו למרצים להטמיע מיומנויות תעסוקתיות בהוראה. נשמח לסייע לך שוב בפעם הבאה.");
-                    }, 1000);
-                    break;
-            }
-        }
-
-        // Show toast notification
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.classList.add('show');
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-
-        // Read file content based on file type
-        async function readFileContent(file) {
-            if (file.type === 'application/pdf') {
-                return await readPdfContent(file);
-            } else {
-                return await readTextContent(file);
-            }
-        }
-
-        // Read PDF file content
-        async function readPdfContent(file) {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            let text = '';
-            
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const content = await page.getTextContent();
-                text += content.items.map(item => item.str).join(' ') + '\n';
-            }
-            
-            return text;
-        }
-
-        // Read text file content
-        async function readTextContent(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = (e) => reject(e);
-                reader.readAsText(file);
-            });
-        }
-
-        // Display clusters in a nice format
-        function displayClusters(clusters, loadingMessage) {
-            const clusterButtons = clusters.map(cluster => ({
-                text: cluster,
-                action: "selectCluster"
-            }));
-            
-            updateLoadingMessage(loadingMessage,
-                "על סמך ניתוח הסילבוס שהעלית, זיהיתי מספר אשכולות מיומנויות רלוונטיים. עם איזה מהם תרצה להמשיך?",
-                clusterButtons
-            );
-            currentState = "selectingCluster";
-        }
-
-        // Process file content
-        async function processFileContent(text, loadingMessage) {
-            try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${window.OPENAI_API_KEY}`
-                    },
-                    body: JSON.stringify({
-                        model: config.openai.model,
-                        messages: [
-                            {
-                                role: "system",
-                                content: config.prompts.analyzeSyllabus
-                            },
-                            {
-                                role: "user",
-                                content: text
-                            }
-                        ],
-                        temperature: 0.7
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                let clusters;
-                try {
-                    clusters = JSON.parse(data.choices[0].message.content);
-                } catch (parseError) {
-                    console.error('Error parsing OpenAI response:', parseError);
-                    clusters = data.choices[0].message.content.split('\n').filter(line => line.trim());
-                }
-
-                displayClusters(clusters, loadingMessage);
-            } catch (error) {
-                console.error('Error:', error);
-                showToast(config.messages.processingError);
-                updateLoadingMessage(loadingMessage, config.messages.processingError);
-            }
-        }
-    </script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-        
-        body {
-            background-color: #f0f2f5;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .app-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            min-height: 100vh;
-            max-width: 1000px;
-            margin: 0 auto;
-            width: 100%;
-            background-color: white;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        .header {
-            padding: 16px;
-            background: linear-gradient(90deg, #3a7bd5, #1c4f9c);
-            color: white;
-            text-align: center;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .header h1 {
-            font-size: 24px;
-            margin-bottom: 4px;
-        }
-
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        
-        .content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .chat-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-        }
-        
-        .message {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        
-        .bot-message {
-            justify-content: flex-start;
-        }
-        
-        .user-message {
-            justify-content: flex-end;
-        }
-
-        .avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            margin-left: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-        }
-
-        .bot-avatar {
-            background-color: #1c4f9c;
-        }
-
-        .user-avatar {
-            background-color: #666;
-        }
-        
-        .message-content {
-            max-width: 75%;
-            padding: 12px 16px;
-            border-radius: 15px;
-            font-size: 15px;
-            line-height: 1.4;
-        }
-        
-        .bot-message .message-content {
-            background-color: #f0f2f5;
-            color: #333;
-            border-top-right-radius: 15px;
-            border-bottom-right-radius: 15px;
-            border-top-left-radius: 4px;
-            border-bottom-left-radius: 15px;
-        }
-        
-        .user-message .message-content {
-            background-color: #0084ff;
-            color: white;
-            border-top-left-radius: 15px;
-            border-bottom-left-radius: 15px;
-            border-top-right-radius: 4px;
-            border-bottom-right-radius: 15px;
-        }
-        
-        .options-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
-        }
-        
-        .option-button {
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 18px;
-            padding: 8px 16px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .option-button:hover {
-            background-color: #f0f2f5;
-            border-color: #bbb;
-        }
-        
-        .file-upload {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #f8f9fa;
-            border: 2px dashed #ddd;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .file-upload:hover {
-            border-color: #0084ff;
-            background-color: #f0f7ff;
-        }
-        
-        .file-upload p {
-            color: #666;
-            font-size: 14px;
-        }
-        
-        .input-container {
-            display: flex;
-            padding: 16px;
-            border-top: 1px solid #ddd;
-            background-color: white;
-        }
-        
-        .message-input {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-            font-size: 15px;
-            resize: none;
-            outline: none;
-        }
-        
-        .send-button {
-            width: 40px;
-            height: 40px;
-            margin-right: 10px;
-            background-color: #0084ff;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-        
-        .send-button:hover {
-            background-color: #0073e6;
-        }
-        
-        .copyright-notice {
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-top: 1px solid #ddd;
-            font-size: 12px;
-            color: #666;
-            text-align: center;
-        }
-        
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 14px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        
-        .toast.show {
-            opacity: 1;
-        }
-        
-        /* Loading indicator styles */
-        .loading-indicator {
-            display: inline-block;
-            margin-left: 5px;
-        }
-        
-        .loading-indicator span {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #666;
-            margin: 0 2px;
-            animation: bounce 1.4s infinite ease-in-out both;
-        }
-        
-        .loading-indicator span:nth-child(1) {
-            animation-delay: -0.32s;
-        }
-        
-        .loading-indicator span:nth-child(2) {
-            animation-delay: -0.16s;
-        }
-        
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1.0); }
-        }
-    </style>
-</head>
-<body onload="initializeApp()">
-    <div class="app-container" id="app">
-        <!-- Chat Screen -->
-        <div id="chat-screen">
-            <div class="header">
-                <h1>אקדמיה פלוס</h1>
-                <p>זיהוי והטמעת מיומנויות תעסוקתיות בתכני הקורס שלך</p>
-            </div>
-            
-            <div class="content">
-                <div class="chat-container" id="chat-container">
-                    <!-- Messages will be added here dynamically -->
-                </div>
-                
-                <div class="input-container">
-                    <textarea class="message-input" id="message-input" placeholder="כתוב הודעה..."></textarea>
-                    <button class="send-button" onclick="sendMessage()">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="22" y1="2" x2="11" y2="13"></line>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Toast notification -->
-    <div id="toast" class="toast"></div>
-</body>
-</html>
+        [שאר הקוד ללא שינוי...]
