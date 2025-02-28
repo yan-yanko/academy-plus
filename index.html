@@ -20,180 +20,305 @@
                 const data = await response.json();
                 window.OPENAI_API_KEY = data.apiKey;
                 console.log('API key loaded successfully');
-                initializeChat();
+                startChat();
             } catch (error) {
                 console.error('Error loading API key:', error);
             }
         };
 
-        function initializeChat() {
-            console.log('Initializing chat...');
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = config.system.allowedFileTypes.join(',');
-            fileInput.style.display = 'none';
-            document.body.appendChild(fileInput);
-
-            fileInput.onchange = async function(e) {
-                console.log('File selected');
-                const file = e.target.files[0];
-                if (!file) {
-                    showToast(config.messages.noFileSelected);
-                    return;
+        // Initialize the chat when page loads
+        window.onload = function() {
+            // Allow sending message with Enter key
+            document.getElementById('message-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
                 }
-
-                if (!config.system.allowedFileTypes.some(type => file.name.toLowerCase().endsWith(type))) {
-                    showToast(config.messages.invalidFileType);
-                    return;
-                }
-
-                if (file.size > config.system.maxFileSize) {
-                    showToast(config.messages.fileTooLarge);
-                    return;
-                }
-
-                showToast(config.messages.processingFile);
-                try {
-                    const text = await readFileContent(file);
-                    console.log('File content read successfully');
-                    await processFileContent(text);
-                } catch (error) {
-                    console.error('Error processing file:', error);
-                    showToast(config.messages.processingError);
-                } finally {
-                    document.body.removeChild(fileInput);
-                }
-            };
-
-            fileInput.click();
-        }
-
-        async function readFileContent(file) {
-            console.log('Reading file content...');
-            if (file.type === 'application/pdf') {
-                return await readPdfContent(file);
-            } else {
-                return await readTextContent(file);
-            }
-        }
-
-        async function readPdfContent(file) {
-            console.log('Reading PDF content...');
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            let fullText = '';
-            
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(' ');
-                fullText += pageText + '\n';
-            }
-            
-            return fullText;
-        }
-
-        async function readTextContent(file) {
-            console.log('Reading text content...');
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = (e) => reject(e);
-                reader.readAsText(file);
             });
+        };
+        
+        // Start the chat with welcome message
+        function startChat() {
+            console.log('Starting chat...');
+            addBotMessage(`שלום ${userData.firstName}, נעים להכיר. אני עוזר הוראה מבוסס בינה מלאכותית המתמחה בזיהוי והטמעת מיומנויות תעסוקתיות בקורסים אקדמיים. אנתח את תוכן הקורס שלך, אזהה מיומנויות רלוונטיות לשוק העבודה, ואציע דרכים מעשיות לשילובן בהוראה שלך.`);
+            
+            setTimeout(() => {
+                addBotMessage(`בוא נתחיל מהעלאת הסילבוס שאתה מתכוון ללמד.`, [
+                    { text: "העלאת סילבוס", action: "uploadSyllabus" }
+                ]);
+            }, 1000);
         }
 
-        async function processFileContent(text) {
-            console.log('Processing file content...');
-            showToast(config.messages.analyzingSyllabus);
-            
-            try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${config.openai.key}`
-                    },
-                    body: JSON.stringify({
-                        model: config.openai.model,
-                        messages: [
-                            {
-                                role: 'system',
-                                content: config.prompts.analyzeSyllabus
+        // Handle option button clicks
+        async function handleOptionClick(action, text) {
+            console.log('Option clicked:', action, text);
+            switch(action) {
+                case "uploadSyllabus":
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.accept = config.system.allowedFileTypes.join(',');
+                    fileInput.style.display = 'none';
+                    document.body.appendChild(fileInput);
+
+                    fileInput.click();
+
+                    fileInput.onchange = async function(e) {
+                        console.log('File selected');
+                        const file = e.target.files[0];
+                        if (!file) {
+                            showToast(config.messages.noFileSelected);
+                            document.body.removeChild(fileInput);
+                            return;
+                        }
+
+                        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+                        if (!config.system.allowedFileTypes.includes(fileExtension)) {
+                            showToast(config.messages.invalidFileType);
+                            document.body.removeChild(fileInput);
+                            return;
+                        }
+
+                        if (file.size > config.system.maxFileSize) {
+                            showToast(config.messages.fileTooLarge);
+                            document.body.removeChild(fileInput);
+                            return;
+                        }
+
+                        addUserMessage("העלאת סילבוס");
+                        addUserMessage(`הקובץ הועלה: ${file.name}`);
+                        showToast(config.messages.uploadSuccess);
+
+                        const loadingMessage = addBotMessage("", null, false, true);
+
+                        try {
+                            const text = await readFileContent(file);
+                            console.log('File content read successfully');
+                            await processFileContent(text, loadingMessage);
+                        } catch (error) {
+                            console.error('Error processing file:', error);
+                            showToast(config.messages.processingError);
+                            updateLoadingMessage(loadingMessage, config.messages.processingError);
+                        } finally {
+                            document.body.removeChild(fileInput);
+                        }
+                    };
+                    break;
+                    
+                case "selectCluster":
+                    addUserMessage(text);
+                    selectedCluster = text;
+                    const loadingMessage2 = addBotMessage("", null, false, true);
+                    
+                    try {
+                        // שליחת בקשה ל-OpenAI לקבלת עיסוקים רלוונטיים לאשכול
+                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${config.openai.key}`
                             },
-                            {
-                                role: 'user',
-                                content: text
-                            }
-                        ],
-                        max_tokens: config.openai.max_tokens
-                    })
-                });
+                            body: JSON.stringify({
+                                model: config.openai.model,
+                                messages: [
+                                    {
+                                        role: "system",
+                                        content: config.prompts.getRelevantOccupations
+                                    },
+                                    {
+                                        role: "user",
+                                        content: `האשכול שנבחר: ${text}`
+                                    }
+                                ],
+                                temperature: 0.7
+                            })
+                        });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                        const data = await response.json();
+                        const occupations = JSON.parse(data.choices[0].message.content);
+                        
+                        updateLoadingMessage(loadingMessage2, 
+                            `מעולה. בחרת באשכול ${text}. להלן העיסוקים שרלוונטיים לאשכול שנבחר. מה העיסוק אותו נרצה לתרגל?`,
+                            occupations.map(occupation => ({ text: occupation, action: "selectOccupation" }))
+                        );
+                        currentState = "selectingOccupation";
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showToast(config.messages.processingError);
+                        updateLoadingMessage(loadingMessage2, config.messages.processingError);
+                    }
+                    break;
+                    
+                case "selectOccupation":
+                    addUserMessage(text);
+                    selectedOccupation = text;
+                    const loadingMessage3 = addBotMessage("", null, false, true);
+                    
+                    try {
+                        // שליחת בקשה ל-OpenAI לקבלת כישורים רלוונטיים לעיסוק
+                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${config.openai.key}`
+                            },
+                            body: JSON.stringify({
+                                model: config.openai.model,
+                                messages: [
+                                    {
+                                        role: "system",
+                                        content: config.prompts.getRelevantSkills
+                                    },
+                                    {
+                                        role: "user",
+                                        content: `העיסוק שנבחר: ${text}`
+                                    }
+                                ],
+                                temperature: 0.7
+                            })
+                        });
 
-                const data = await response.json();
-                console.log('OpenAI response:', data);
-                
-                const clusters = JSON.parse(data.choices[0].message.content);
-                displayClusters(clusters);
-            } catch (error) {
-                console.error('Error analyzing syllabus:', error);
-                showToast(config.messages.analysisError);
+                        const data = await response.json();
+                        const skills = JSON.parse(data.choices[0].message.content);
+                        
+                        updateLoadingMessage(loadingMessage3,
+                            `מעולה. איזה כישור נרצה לפתח לעיסוק ${text}?`,
+                            skills.map(skill => ({ text: skill, action: "selectSkill" }))
+                        );
+                        currentState = "selectingSkill";
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showToast(config.messages.processingError);
+                        updateLoadingMessage(loadingMessage3, config.messages.processingError);
+                    }
+                    break;
+                    
+                case "selectSkill":
+                    addUserMessage(text);
+                    selectedSkill = text;
+                    const loadingMessage4 = addBotMessage("", null, false, true);
+                    
+                    try {
+                        // שליחת בקשה ל-OpenAI לקבלת תרגילים לכישור
+                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${config.openai.key}`
+                            },
+                            body: JSON.stringify({
+                                model: config.openai.model,
+                                messages: [
+                                    {
+                                        role: "system",
+                                        content: config.prompts.getExercises
+                                    },
+                                    {
+                                        role: "user",
+                                        content: `אשכול: ${selectedCluster}\nעיסוק: ${selectedOccupation}\nכישור: ${text}`
+                                    }
+                                ],
+                                temperature: 0.7
+                            })
+                        });
+
+                        const data = await response.json();
+                        const exercises = JSON.parse(data.choices[0].message.content);
+                        
+                        updateLoadingMessage(loadingMessage4,
+                            `על סמך הסילבוס, העיסוק והכישור שנבחר, להלן שתי הצעות למשימות שיאפשרו לתרגל ולפתח את הכישור ${text}:`
+                        );
+                        
+                        exercises.forEach((exercise, index) => {
+                            addBotMessage(`<b>${exercise.title}</b><br>${exercise.description}`);
+                        });
+                        
+                        addBotMessage("עם איזו משימה תרצה להמשיך?", [
+                            { text: exercises[0].title, action: "selectTask" },
+                            { text: exercises[1].title, action: "selectTask" }
+                        ]);
+                        currentState = "selectingTask";
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showToast(config.messages.processingError);
+                        updateLoadingMessage(loadingMessage4, config.messages.processingError);
+                    }
+                    break;
+                    
+                case "selectTask":
+                    addUserMessage(text);
+                    const loadingMessage5 = addBotMessage("", null, false, true);
+                    
+                    try {
+                        // שליחת בקשה ל-OpenAI לקבלת מחוון למשימה
+                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${config.openai.key}`
+                            },
+                            body: JSON.stringify({
+                                model: config.openai.model,
+                                messages: [
+                                    {
+                                        role: "system",
+                                        content: config.prompts.createRubric
+                                    },
+                                    {
+                                        role: "user",
+                                        content: `אשכול: ${selectedCluster}\nעיסוק: ${selectedOccupation}\nכישור: ${selectedSkill}\nמשימה: ${text}`
+                                    }
+                                ],
+                                temperature: 0.7
+                            })
+                        });
+
+                        const data = await response.json();
+                        const rubric = data.choices[0].message.content;
+                        
+                        updateLoadingMessage(loadingMessage5, `להלן המחוון שיעזור לך לבדוק את המשימה "${text}"`);
+                        
+                        addBotMessage(rubric);
+                        
+                        addBotMessage("האם תרצה להוריד את המחוון או להעלות סילבוס נוסף?", [
+                            { text: "הורד מחוון", action: "downloadRubric" },
+                            { text: "העלאת סילבוס נוסף", action: "uploadSyllabus" }
+                        ]);
+                        currentState = "finished";
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showToast(config.messages.processingError);
+                        updateLoadingMessage(loadingMessage5, config.messages.processingError);
+                    }
+                    break;
+                    
+                case "downloadRubric":
+                    addUserMessage("הורד מחוון");
+                    
+                    // Show toast notification
+                    showToast("המחוון הורד בהצלחה");
+                    
+                    // Add loading indicator
+                    const loadingMessage7 = addBotMessage("", null, false, true);
+                    
+                    setTimeout(() => {
+                        updateLoadingMessage(loadingMessage7, "המחוון הורד בהצלחה. האם תרצה להעלות סילבוס נוסף?", [
+                            { text: "העלאת סילבוס נוסף", action: "uploadSyllabus" },
+                            { text: "לא תודה", action: "endSession" }
+                        ]);
+                    }, 1000);
+                    break;
+                    
+                case "endSession":
+                    addUserMessage("לא תודה");
+                    
+                    // Add loading indicator
+                    const loadingMessage8 = addBotMessage("", null, false, true);
+                    
+                    setTimeout(() => {
+                        updateLoadingMessage(loadingMessage8, "תודה על השימוש באקדמיה פלוס! המשוב וההצעות שלך יסייעו למרצים להטמיע מיומנויות תעסוקתיות בהוראה. נשמח לסייע לך שוב בפעם הבאה.");
+                    }, 1000);
+                    break;
             }
-        }
-
-        function displayClusters(clusters) {
-            console.log('Displaying clusters:', clusters);
-            addBotMessage('בחר אחד מהאשכולות הבאים:');
-            
-            const optionsContainer = document.createElement('div');
-            optionsContainer.className = 'options-container';
-            
-            clusters.forEach(cluster => {
-                const button = document.createElement('button');
-                button.className = 'option-button';
-                button.textContent = cluster;
-                button.onclick = () => handleClusterSelection(cluster);
-                optionsContainer.appendChild(button);
-            });
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message bot-message';
-            messageDiv.appendChild(optionsContainer);
-            document.getElementById('chat-container').appendChild(messageDiv);
-        }
-
-        function handleClusterSelection(cluster) {
-            console.log('Cluster selected:', cluster);
-            // המשך הטיפול באשכול שנבחר...
-        }
-
-        function addBotMessage(message) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message bot-message';
-            messageDiv.innerHTML = message;
-            document.getElementById('chat-container').appendChild(messageDiv);
-        }
-
-        function showToast(message) {
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.classList.add('show');
-            }, 100);
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => {
-                    document.body.removeChild(toast);
-                }, 300);
-            }, 3000);
         }
     </script>
     <style>
@@ -782,230 +907,6 @@
                     document.body.removeChild(fileInput);
                 }
             };
-        }
-
-        // Handle option button clicks
-        async function handleOptionClick(action, text) {
-            switch(action) {
-                case "uploadSyllabus":
-                    simulateFileUpload();
-                    break;
-                    
-                case "selectCluster":
-                    addUserMessage(text);
-                    selectedCluster = text;
-                    const loadingMessage2 = addBotMessage("", null, false, true);
-                    
-                    try {
-                        // שליחת בקשה ל-OpenAI לקבלת עיסוקים רלוונטיים לאשכול
-                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${config.openai.key}`
-                            },
-                            body: JSON.stringify({
-                                model: config.openai.model,
-                                messages: [
-                                    {
-                                        role: "system",
-                                        content: config.prompts.getRelevantOccupations
-                                    },
-                                    {
-                                        role: "user",
-                                        content: `האשכול שנבחר: ${text}`
-                                    }
-                                ],
-                                temperature: 0.7
-                            })
-                        });
-
-                        const data = await response.json();
-                        const occupations = JSON.parse(data.choices[0].message.content);
-                        
-                        updateLoadingMessage(loadingMessage2, 
-                            `מעולה. בחרת באשכול ${text}. להלן העיסוקים שרלוונטיים לאשכול שנבחר. מה העיסוק אותו נרצה לתרגל?`,
-                            occupations.map(occupation => ({ text: occupation, action: "selectOccupation" }))
-                        );
-                        currentState = "selectingOccupation";
-                    } catch (error) {
-                        console.error('Error:', error);
-                        showToast(config.messages.processingError);
-                        updateLoadingMessage(loadingMessage2, config.messages.processingError);
-                    }
-                    break;
-                    
-                case "selectOccupation":
-                    addUserMessage(text);
-                    selectedOccupation = text;
-                    const loadingMessage3 = addBotMessage("", null, false, true);
-                    
-                    try {
-                        // שליחת בקשה ל-OpenAI לקבלת כישורים רלוונטיים לעיסוק
-                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${config.openai.key}`
-                            },
-                            body: JSON.stringify({
-                                model: config.openai.model,
-                                messages: [
-                                    {
-                                        role: "system",
-                                        content: config.prompts.getRelevantSkills
-                                    },
-                                    {
-                                        role: "user",
-                                        content: `העיסוק שנבחר: ${text}`
-                                    }
-                                ],
-                                temperature: 0.7
-                            })
-                        });
-
-                        const data = await response.json();
-                        const skills = JSON.parse(data.choices[0].message.content);
-                        
-                        updateLoadingMessage(loadingMessage3,
-                            `מעולה. איזה כישור נרצה לפתח לעיסוק ${text}?`,
-                            skills.map(skill => ({ text: skill, action: "selectSkill" }))
-                        );
-                        currentState = "selectingSkill";
-                    } catch (error) {
-                        console.error('Error:', error);
-                        showToast(config.messages.processingError);
-                        updateLoadingMessage(loadingMessage3, config.messages.processingError);
-                    }
-                    break;
-                    
-                case "selectSkill":
-                    addUserMessage(text);
-                    selectedSkill = text;
-                    const loadingMessage4 = addBotMessage("", null, false, true);
-                    
-                    try {
-                        // שליחת בקשה ל-OpenAI לקבלת תרגילים לכישור
-                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${config.openai.key}`
-                            },
-                            body: JSON.stringify({
-                                model: config.openai.model,
-                                messages: [
-                                    {
-                                        role: "system",
-                                        content: config.prompts.getExercises
-                                    },
-                                    {
-                                        role: "user",
-                                        content: `אשכול: ${selectedCluster}\nעיסוק: ${selectedOccupation}\nכישור: ${text}`
-                                    }
-                                ],
-                                temperature: 0.7
-                            })
-                        });
-
-                        const data = await response.json();
-                        const exercises = JSON.parse(data.choices[0].message.content);
-                        
-                        updateLoadingMessage(loadingMessage4,
-                            `על סמך הסילבוס, העיסוק והכישור שנבחר, להלן שתי הצעות למשימות שיאפשרו לתרגל ולפתח את הכישור ${text}:`
-                        );
-                        
-                        exercises.forEach((exercise, index) => {
-                            addBotMessage(`<b>${exercise.title}</b><br>${exercise.description}`);
-                        });
-                        
-                        addBotMessage("עם איזו משימה תרצה להמשיך?", [
-                            { text: exercises[0].title, action: "selectTask" },
-                            { text: exercises[1].title, action: "selectTask" }
-                        ]);
-                        currentState = "selectingTask";
-                    } catch (error) {
-                        console.error('Error:', error);
-                        showToast(config.messages.processingError);
-                        updateLoadingMessage(loadingMessage4, config.messages.processingError);
-                    }
-                    break;
-                    
-                case "selectTask":
-                    addUserMessage(text);
-                    const loadingMessage5 = addBotMessage("", null, false, true);
-                    
-                    try {
-                        // שליחת בקשה ל-OpenAI לקבלת מחוון למשימה
-                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${config.openai.key}`
-                            },
-                            body: JSON.stringify({
-                                model: config.openai.model,
-                                messages: [
-                                    {
-                                        role: "system",
-                                        content: config.prompts.createRubric
-                                    },
-                                    {
-                                        role: "user",
-                                        content: `אשכול: ${selectedCluster}\nעיסוק: ${selectedOccupation}\nכישור: ${selectedSkill}\nמשימה: ${text}`
-                                    }
-                                ],
-                                temperature: 0.7
-                            })
-                        });
-
-                        const data = await response.json();
-                        const rubric = data.choices[0].message.content;
-                        
-                        updateLoadingMessage(loadingMessage5, `להלן המחוון שיעזור לך לבדוק את המשימה "${text}"`);
-                        
-                        addBotMessage(rubric);
-                        
-                        addBotMessage("האם תרצה להוריד את המחוון או להעלות סילבוס נוסף?", [
-                            { text: "הורד מחוון", action: "downloadRubric" },
-                            { text: "העלאת סילבוס נוסף", action: "uploadSyllabus" }
-                        ]);
-                        currentState = "finished";
-                    } catch (error) {
-                        console.error('Error:', error);
-                        showToast(config.messages.processingError);
-                        updateLoadingMessage(loadingMessage5, config.messages.processingError);
-                    }
-                    break;
-                    
-                case "downloadRubric":
-                    addUserMessage("הורד מחוון");
-                    
-                    // Show toast notification
-                    showToast("המחוון הורד בהצלחה");
-                    
-                    // Add loading indicator
-                    const loadingMessage7 = addBotMessage("", null, false, true);
-                    
-                    setTimeout(() => {
-                        updateLoadingMessage(loadingMessage7, "המחוון הורד בהצלחה. האם תרצה להעלות סילבוס נוסף?", [
-                            { text: "העלאת סילבוס נוסף", action: "uploadSyllabus" },
-                            { text: "לא תודה", action: "endSession" }
-                        ]);
-                    }, 1000);
-                    break;
-                    
-                case "endSession":
-                    addUserMessage("לא תודה");
-                    
-                    // Add loading indicator
-                    const loadingMessage8 = addBotMessage("", null, false, true);
-                    
-                    setTimeout(() => {
-                        updateLoadingMessage(loadingMessage8, "תודה על השימוש באקדמיה פלוס! המשוב וההצעות שלך יסייעו למרצים להטמיע מיומנויות תעסוקתיות בהוראה. נשמח לסייע לך שוב בפעם הבאה.");
-                    }, 1000);
-                    break;
-            }
         }
     </script>
 </body>
